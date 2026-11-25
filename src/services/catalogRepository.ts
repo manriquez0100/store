@@ -105,7 +105,12 @@ export async function testFirestoreConnection(): Promise<{
 
   try {
     const endpoint = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}?limit=1`;
-    const response = await fetch(endpoint, { method: 'GET', timeout: 10000 });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(endpoint, { method: 'GET', signal: controller.signal });
+
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       return { success: true, projectId, collection };
@@ -113,7 +118,15 @@ export async function testFirestoreConnection(): Promise<{
 
     const text = await response.text();
     return { success: false, projectId, collection, error: `HTTP ${response.status}: ${text}` };
-  } catch (err) {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return {
+        success: false,
+        projectId,
+        collection,
+        error: 'Request timed out after 10000ms',
+      };
+    }
     return {
       success: false,
       projectId,
