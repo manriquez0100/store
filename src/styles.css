@@ -32,3 +32,107 @@ button { cursor: pointer; }
 .detail-layout { display: grid; grid-template-columns: minmax(230px, .9fr) minmax(320px, 1.2fr) minmax(285px, .85fr); gap: clamp(35px, 6vw, 90px); max-width: 1170px; margin: 47px auto 80px; padding: 0 32px; align-items: center; }.detail-cover { max-width: 310px; }.featured-cover { height: 442px; padding: 27px; }.featured-cover strong { font-size: 50px; }.detail-copy h1 { font-size: clamp(50px, 5vw, 75px); }.detail-copy h2 { margin: 16px 0 30px; color: #9d3e1a; font: 400 20px 'DM Serif Display'; }.description { color: #3e5123; font-size: 15px; line-height: 1.85; }.detail-copy dl { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding-top: 21px; border-top: 2px solid #1c2012; }.detail-copy dl div:last-child { grid-column: span 2; }.detail-copy dt { color: #697237; font: 10px 'DM Mono'; text-transform: uppercase; letter-spacing: .08em; }.detail-copy dd { margin: 4px 0 0; color: #1d2713; font: 13px 'DM Mono'; }.purchase-card { padding: 28px; background: #f7edbd; border: 2px solid #181b12; box-shadow: 9px 10px 0 #1a240f; }.stock { color: #2c7435; margin: 0 0 20px; font: 11px 'DM Mono'; }.price { display: block; color: #181b12; font: 400 38px 'DM Serif Display'; }.delivery { padding-bottom: 22px; border-bottom: 1px solid #a7ad67; color: #455325; font-size: 12px; }.paypal-button, .oxxo-button { display: block; width: 100%; border-radius: 0; padding: 14px 12px; text-align: center; text-decoration: none; font: 700 12px Manrope; text-transform: uppercase; }.paypal-button { color: #ecf071; background: #19230f; }.paypal-button b { font-weight: 700; font-style: italic; }.oxxo-button { color: #1b1d12; border: 2px solid #1b1d12; background: #c7de41; }.divider { position: relative; height: 31px; text-align: center; }.divider::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; border-top: 1px solid #a5ac68; }.divider span { position: relative; top: 7px; z-index: 1; padding: 0 8px; background: #f7edbd; color: #576134; font: 11px 'DM Mono'; }.payment-note { margin: 19px 0 0; color: #3f5125; font-size: 11px; line-height: 1.65; }.payment-note strong { color: #17220e; }.purchase-steps { max-width: 1170px; margin: auto; padding: 39px 32px 72px; border-top: 2px solid #1b1e12; }.purchase-steps > div { display: flex; align-items: center; gap: 18px; }.purchase-steps span { color: #9f3e1c; font: 13px 'DM Mono'; }.purchase-steps p { color: #263819; font: 13px Manrope; margin: 0 25px 0 0; }
 @media (max-width: 850px) { .book-grid { grid-template-columns: repeat(2, 1fr); }.detail-layout { grid-template-columns: 1fr 1fr; }.purchase-card { grid-column: span 2; max-width: 500px; }.detail-cover { max-width: 260px; }.featured-cover { height: 370px; }.purchase-steps > div { align-items: flex-start; flex-direction: column; gap: 6px; }.purchase-steps p { margin: 0 0 15px; } }
 @media (max-width: 560px) { .site-header { height: 68px; padding: 0 20px; }.hero { padding: 65px 20px 70px; }.hero h1 { font-size: 51px; }.catalog { padding: 58px 20px; }.section-heading h2 { font-size: 34px; }.book-grid { grid-template-columns: 1fr; gap: 38px; }.book-cover { height: 380px; }.detail-layout { grid-template-columns: 1fr; padding: 0 20px; margin-top: 22px; gap: 30px; }.detail-cover { max-width: 100%; }.featured-cover { height: 420px; }.purchase-card { grid-column: auto; }.purchase-steps { padding: 35px 20px 55px; }.detail-copy h1 { font-size: 54px; } }
+
+/* --- Site Header --- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(26, 31, 14, 0.8);
+  transition: backdrop-filter .2s ease;
+}
+
+.site-header.scrolled { backdrop-filter: blur(16px); }
+
+.site-header-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .2s ease;
+}
+
+.brand:hover { transform: scale(1.02); }
+
+.brand-badge {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font: 700 10px 'DM Mono';
+  background: #1f2710;
+  color: #b9d732;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-text small {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #b9d732;
+  font-family: 'DM Mono', monospace;
+}
+
+@media (max-width: 720px) {
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .site-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem 1.25rem;
+    gap: 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    background: #1a1f0e;
+    backdrop-filter: blur(8px);
+  }
+
+  .site-nav.is-open {
+    display: flex;
+  }
+}
