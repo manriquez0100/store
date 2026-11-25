@@ -105,7 +105,7 @@ export async function testFirestoreConnection(): Promise<{
 
   try {
     const endpoint = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}?limit=1`;
-    const response = await fetch(endpoint, { method: 'GET', timeout: 10000 });
+    const response = await fetch(endpoint, { method: 'GET' });
 
     if (response.ok) {
       return { success: true, projectId, collection };
