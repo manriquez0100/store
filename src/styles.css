@@ -9,9 +9,15 @@ button { cursor: pointer; }
 .brand { border: 0; background: transparent; color: #181b12; display: inline-flex; align-items: center; font: 700 13px Manrope; letter-spacing: -.03em; padding: 0; text-transform: uppercase; }
 .brand span { display: grid; place-items: center; width: 35px; height: 35px; margin-right: 10px; background: #151a12; color: #b9d732; font: 10px 'DM Mono'; letter-spacing: -.08em; }
 .site-header a, .back-link { color: #181b12; border: 0; background: transparent; font: 700 12px 'DM Mono'; text-decoration: none; text-transform: uppercase; }
-.hero { position: relative; isolation: isolate; overflow: hidden; padding: 94px 32px 105px; text-align: center; background: #9fca2b; }
-.hero::before { content: ''; position: absolute; z-index: -1; inset: -27% 25% -38% -15%; background: radial-gradient(ellipse at 51% 51%, #e6e65a 0 21%, #cfdf35 42%, #8dbd28 72%); clip-path: polygon(9% 15%, 67% 0, 100% 18%, 90% 65%, 62% 100%, 22% 85%, 0 57%); transform: rotate(-8deg); }
-.hero::after { content: 'EDICIONES · BUENA MEMORIA'; position: absolute; top: 20px; right: 28px; color: #171b12; font: 10px 'DM Mono'; letter-spacing: .1em; }
+.hero-section { position: relative; isolation: isolate; overflow: hidden; padding: 120px 32px 110px; text-align: center; background: linear-gradient(180deg, #1a1f0e 0%, #2d371a 30%, #28351a 100%); color: #f5f0e2; }
+.hero-section::before { content: ''; position: absolute; z-index: -1; inset: 0; background: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='blur'%3E%3CfeGaussianBlur stdDeviation='8' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%2328351a' /%3E%3C/rect%3E%3C/svg%3E") 0 0 / cover no-repeat; filter: blur(20px); }
+.hero-section::after { content: 'EDICIONES · BUENA MEMORIA'; position: absolute; top: 30px; right: 32px; color: #b9d732; font: 10px 'DM Mono'; letter-spacing: .15em; text-transform: uppercase; }
+.hero-title { font: 400 clamp(56px, 10vw, 110px)/.95 'DM Serif Display'; letter-spacing: -.05em; margin: 0 0 15px; color: #f5f0e2; line-height: 1.1; }
+.hero-title em { font-style: normal; color: #a8c255; font-weight: 400; }
+.hero-subtitle { max-width: 680px; margin: 0 auto 40px; color: #c8d0a8; font-size: 16px; line-height: 1.8; }
+.hero-cta .cta-button { font: 700 14px Manrope; letter-spacing: .1em; text-transform: uppercase; padding: 16px 36px; border: 2px solid #b9d732; background: transparent; color: #b9d732; transition: all .3s ease; }
+.hero-cta .cta-button:hover { background: #b9d732; color: #1a1f0e; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(185, 215, 50, .3); }
+.hero-eyebrow { color: #b9d732; font: 500 10px 'DM Mono'; letter-spacing: .15em; text-transform: uppercase; margin: 0 0 20px; }
 .eyebrow { color: #1a1d13; font: 500 11px 'DM Mono'; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 13px; }
 .hero h1, .detail-copy h1 { font: 400 clamp(48px, 7vw, 92px)/.93 'DM Serif Display'; letter-spacing: -.045em; margin: 0; color: #12170e; }
 .hero h1 em { color: #1c310e; font-weight: 400; }
