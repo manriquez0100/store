@@ -80,9 +80,7 @@ function SiteHeader({ onHome, showBackButton = false, onBack }: SiteHeaderProps)
               ← Volver al catálogo
             </button>
           ) : (
-            <>
-
-            </>
+            <></>
           )}
           <a
             href={WHATSAPP_URL}
@@ -115,29 +113,33 @@ function Cover({ book, featured = false }: { book: Book; featured?: boolean }) {
             }
           : {}
       }
-    >
-    </div>
+    />
   );
 }
 
 function BookCard({ book }: { book: Book }) {
+  const handleOpen = () => {
+    window.location.hash = `#/libro/${book.id}`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <article
       className="book-card"
       tabIndex={0}
       role="button"
-      onClick={() => {
-        window.location.hash = `#/libro/${book.id}`;
+      aria-label={`Ver libro: ${book.title}`}
+      onClick={handleOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleOpen();
+        }
       }}
     >
-      <button
-        type="button"
-        className="cover-button"
-        aria-label={`Ver libro: ${book.title}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="cover-button" aria-hidden="true">
         <Cover book={book} />
-      </button>
+      </div>
       <div className="book-card-info">
         <p className="book-author">{book.author}</p>
         <h3 className="book-title">{book.title}</h3>
@@ -150,9 +152,10 @@ function BookCard({ book }: { book: Book }) {
 function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => location.hash.replace('#/libro/', '') || null
-  );
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    const hash = window.location.hash;
+    return hash.startsWith('#/libro/') ? hash.replace('#/libro/', '') || null : null;
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -162,12 +165,16 @@ function App() {
       .catch((cause: Error) => setError(cause.message))
       .finally(() => setLoading(false));
 
-    const onHashChange = () => setSelectedId(location.hash.replace('#/libro/', '') || null);
-    addEventListener('hashchange', onHashChange);
-    return () => removeEventListener('hashchange', onHashChange);
-  }, [location.hash]);
+    const onHashChange = () => {
+      const hash = window.location.hash;
+      setSelectedId(hash.startsWith('#/libro/') ? hash.replace('#/libro/', '') || null : null);
+    };
 
-  const selectedBook = books.find((book) => book.id === selectedId);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const selectedBook = books.find((book) => String(book.id) === String(selectedId));
   const visibleBooks = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('es-MX');
     return normalized
@@ -183,7 +190,8 @@ function App() {
   const featuredBooks = useMemo(() => shuffleArray(books), [books]);
 
   const goHome = () => {
-    location.hash = '';
+    window.location.hash = '';
+    setSelectedId(null);
     setQuery('');
   };
 
@@ -225,18 +233,24 @@ function App() {
             />
 
             <span className="search-icon">🔍</span>
-            <span className="search-focus-indicator"></span>
-            <span className="search-clear" aria-label="Limpiar búsqueda" onClick={(e) => {
-              e.stopPropagation();
-              setQuery('');
-            }}>&times;</span>
+            <span className="search-focus-indicator" />
+            <span
+              className="search-clear"
+              aria-label="Limpiar búsqueda"
+              onClick={(e) => {
+                e.stopPropagation();
+                setQuery('');
+              }}
+            >
+              &times;
+            </span>
           </div>
         </div>
       </section>
 
       <section className="catalog" id="catalogo">
         <div className="section-heading">
-         
+          {normalizedQuery && <h2>Resultados de búsqueda</h2>}
           <p>{visibleBooks.length} títulos</p>
         </div>
 
