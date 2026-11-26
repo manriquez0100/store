@@ -3,391 +3,82 @@ import { getCatalog } from './services/catalogRepository';
 import type { Book } from './types';
 
 const WHATSAPP_NUMBER = '524771376775';
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-  'Hola, busco un libro y me gustaría recibir atención personal.'
-)}`;
 const paypalPaymentUrl = import.meta.env.VITE_PAYPAL_PAYMENT_URL ?? 'https://www.paypal.com/';
 
 function money(amount: number) {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return amount > 0
+    ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(amount)
+    : 'Consultar precio';
 }
 
-/** Mezcla aleatoria (Fisher-Yates) */
-function shuffleArray<T>(array: T[]): T[] {
-  const copy = [...array];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-interface SiteHeaderProps {
-  onHome: () => void;
-  showBackButton?: boolean;
-  onBack?: () => void;
-}
-
-function SiteHeader({ onHome, showBackButton = false, onBack }: SiteHeaderProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const handleNavClick = () => setMenuOpen(false);
-
+function Cover({ book, large = false }: { book: Book; large?: boolean }) {
+  const hasImage = Boolean(book.imageUrl?.trim());
   return (
-    <header className="site-header" role="banner">
-      <div className="site-header-inner">
-        <button
-          type="button"
-          className="brand"
-          onClick={() => {
-            onHome();
-            setMenuOpen(false);
-          }}
-          aria-label="Los libros de la buena memoria - Ir al inicio"
-        >
-          <span className="brand-badge" aria-hidden="true">LBM</span>
-        </button>
-
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={menuOpen}
-          aria-controls="primary-navigation"
-          aria-label={menuOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
-          onClick={() => setMenuOpen((prev) => !prev)}
-        >
-          {menuOpen ? '✕' : '☰'}
-        </button>
-
-        <nav
-          id="primary-navigation"
-          className={`site-nav ${menuOpen ? 'is-open' : ''}`}
-          aria-label="Navegación principal"
-        >
-          {showBackButton && onBack ? (
-            <button
-              type="button"
-              className="back-link"
-              onClick={() => {
-                onBack();
-                setMenuOpen(false);
-              }}
-            >
-              ← Volver al catálogo
-            </button>
-          ) : (
-            <></>
-          )}
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="nav-cta"
-            onClick={handleNavClick}
-          >
-            WhatsApp
-          </a>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
-function Cover({ book, featured = false }: { book: Book; featured?: boolean }) {
-  const hasImage = Boolean(book.imageUrl && book.imageUrl.trim().length > 0);
-  return (
-    <div
-      className={`book-cover ${book.coverTone} ${featured ? 'featured-cover' : ''}`}
-      aria-label={`Portada de ${book.title}`}
-      style={
-        hasImage
-          ? {
-              backgroundImage: `url('${book.imageUrl}')`,
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-            }
-          : {}
-      }
-    />
-  );
-}
-
-function BookCard({ book }: { book: Book }) {
-  const handleOpen = () => {
-    window.location.hash = `#/libro/${book.id}`;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  return (
-    <article
-      className="book-card"
-      tabIndex={0}
-      role="button"
-      aria-label={`Ver libro: ${book.title}`}
-      onClick={handleOpen}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleOpen();
-        }
-      }}
-    >
-      <div className="cover-button" aria-hidden="true">
-        <Cover book={book} />
-      </div>
-      <div className="book-card-info">
-        <p className="book-author">{book.author}</p>
-        <h3 className="book-title">{book.title}</h3>
-        <div className="book-price">{book.price > 0 ? money(book.price) : 'Consultar'}</div>
-      </div>
-    </article>
+    <div className={`book-cover ${book.coverTone} ${large ? 'book-cover-large' : ''}`} style={hasImage ? { backgroundImage: `url('${book.imageUrl}')` } : undefined} aria-label={`Portada de ${book.title}`}>
+      {!hasImage && <><span className="cover-stamp">LBM</span><strong>{book.title}</strong><small>{book.author}</small></>}
+      {hasImage && <span className="cover-stamp image-stamp">LBM</span>}
+    </div>
   );
 }
 
 function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(() => {
-    const hash = window.location.hash;
-    return hash.startsWith('#/libro/') ? hash.replace('#/libro/', '') || null : null;
-  });
+  const [selectedId, setSelectedId] = useState<string | null>(() => location.hash.replace('#/libro/', '') || null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getCatalog()
-      .then(setBooks)
-      .catch((cause: Error) => setError(cause.message))
-      .finally(() => setLoading(false));
-
-    const onHashChange = () => {
-      const hash = window.location.hash;
-      setSelectedId(hash.startsWith('#/libro/') ? hash.replace('#/libro/', '') || null : null);
-    };
-
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
+    getCatalog().then(setBooks).catch((cause: Error) => setError(cause.message)).finally(() => setLoading(false));
+    const onHashChange = () => setSelectedId(location.hash.replace('#/libro/', '') || null);
+    addEventListener('hashchange', onHashChange);
+    return () => removeEventListener('hashchange', onHashChange);
   }, []);
 
-  const selectedBook = books.find((book) => String(book.id) === String(selectedId));
+  const selectedBook = books.find((book) => book.id === selectedId);
   const visibleBooks = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('es-MX');
-    return normalized
-      ? books.filter((book) =>
-          `${book.title} ${book.author} ${book.category}`
-            .toLocaleLowerCase('es-MX')
-            .includes(normalized)
-        )
-      : books;
+    return normalized ? books.filter((book) => `${book.title} ${book.author} ${book.category}`.toLocaleLowerCase('es-MX').includes(normalized)) : books;
   }, [books, query]);
+  const featuredBook = visibleBooks[0] ?? books[0];
+  const openBook = (id: string) => { location.hash = `/libro/${id}`; scrollTo({ top: 0, behavior: 'smooth' }); };
+  const goHome = () => { location.hash = ''; setQuery(''); };
 
-  const normalizedQuery = useMemo(() => query.trim().toLocaleLowerCase('es-MX'), [query]);
-  const featuredBooks = useMemo(() => shuffleArray(books), [books]);
+  if (selectedId && selectedBook) return <BookDetail book={selectedBook} onBack={goHome} />;
 
-  const goHome = () => {
-    window.location.hash = '';
-    setSelectedId(null);
-    setQuery('');
-  };
-
-  if (selectedId && selectedBook) {
-    return <BookDetail book={selectedBook} onBack={goHome} />;
-  }
-
-  return (
-    <main>
-      <SiteHeader onHome={goHome} />
-
-      <section className="hero-section">
-        <div className="hero-content">
-          <p className="hero-eyebrow">Librería independiente · México</p>
-          <h1 className="hero-title">
-            Buscamos el libro que no has encontrado y lo entregamos en tu domicilio.
-          </h1>
-          <p className="hero-subtitle">
-            Ayudamos a encontrar libros difíciles de conseguir, descatalogados y títulos bajo pedido.
-          </p>
-          <div className="hero-cta">
-            <a href="#catalogo" className="cta-button">Encuentra tu libro</a>
-          </div>
-        </div>
-      </section>
-
-      {/* === 2. BARRA DE BÚSQUEDA === */}
-      <section className="search-section">
-        <div className="search-container">
-          <div className="search-wrapper" role="search">
-            <input
-              id="book-search"
-              type="text"
-              className="search-input"
-              aria-label="Buscar libros"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="¿Qué libro estás buscando?"
-            />
-
-            <span className="search-icon">🔍</span>
-            <span className="search-focus-indicator" />
-            <span
-              className="search-clear"
-              aria-label="Limpiar búsqueda"
-              onClick={(e) => {
-                e.stopPropagation();
-                setQuery('');
-              }}
-            >
-              &times;
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <section className="catalog" id="catalogo">
-        <div className="section-heading">
-          {normalizedQuery && <h2>Resultados de búsqueda</h2>}
-          <p>{visibleBooks.length} títulos</p>
-        </div>
-
-        {loading && <p className="status">Cargando catálogo…</p>}
-        {error && <p className="status error">{error}</p>}
-
-        {!loading && !error && (
-          <div className="book-grid">
-            {/* Sección de libros destacados aleatorios */}
-            {featuredBooks.length > 0 && (
-              <div className="featured-books-section">
-                <p className="featured-section-eyebrow">Destacados</p>
-                <h3 className="featured-section-title">Libros que te encantarán</h3>
-                <p className="featured-section-subtitle">
-                  Una selección aleatoria de nuestro catálogo disponible
-                </p>
-              </div>
-            )}
-
-            {/* Tarjetas de libros */}
-            {visibleBooks.map((book) => (
-              <BookCard key={book.id} book={book} />
-            ))}
-
-            {!loading && !error && visibleBooks.length === 0 && (
-              <p className="status">
-                No encontramos ese título. Pruebe con el autor o una palabra distinta.
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Mostrar libros adicionales después de los destacados cuando haya más libros */}
-        {featuredBooks.length > 0 && visibleBooks.length > featuredBooks.length && (
-          <div className="more-books-notice">
-            <p className="more-section-eyebrow">Más libros disponibles</p>
-            <h3 className="more-section-title">Seguimos buscando...</h3>
-            <p className="more-section-subtitle">
-              {visibleBooks.length - featuredBooks.length} títulos más en nuestro catálogo
-            </p>
-          </div>
-        )}
-      </section>
-
-      <section className="trust-strip">
-        <span>✦ Pago seguro</span>
-        <span>✦ Envíos a todo México</span>
-        <span>✦ Atención por WhatsApp</span>
-      </section>
-
-      <footer>
-        Los libros de la buena memoria <span>·</span> Libros que vuelven a encontrarte
-      </footer>
-    </main>
-  );
+  return <main>
+    <header className="site-header">
+      <button className="brand" onClick={goHome} aria-label="Ir al inicio"><span>LBM</span><b>Los libros de la buena memoria</b></button>
+      <nav><a href="#catalogo">Catálogo</a><a className="header-cta" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">Te ayudamos a buscar</a></nav>
+    </header>
+    <section className="hero">
+      <div className="hero-copy"><p className="eyebrow">Librería independiente · México</p><h1>Los libros que<br /><em>siguen buscándote.</em></h1><p>Encontramos ediciones especiales, títulos difíciles y ese libro que ya no veías en ninguna parte.</p><a className="primary-link" href="#catalogo">Explorar el catálogo <span>↓</span></a></div>
+      {featuredBook && <button className="hero-book" onClick={() => openBook(featuredBook.id)}><Cover book={featuredBook} large /><span>Descubre la selección de hoy <b>→</b></span></button>}
+    </section>
+    <section className="catalog" id="catalogo">
+      <div className="catalog-top"><div><p className="eyebrow">La estantería</p><h2>{query ? 'Resultados para tu búsqueda' : 'Encuentra tu próximo libro'}</h2></div><label className="search" htmlFor="book-search"><span>⌕</span><input id="book-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Título, autor o tema" /></label></div>
+      <div className="catalog-meta"><span>{visibleBooks.length} {visibleBooks.length === 1 ? 'título' : 'títulos'} disponibles</span><span>Envíos a todo México</span></div>
+      {loading && <p className="status">Ordenando los libros para ti…</p>}
+      {error && <p className="status error">{error}</p>}
+      {!loading && !error && <div className="book-grid">{visibleBooks.map((book) => <article className="book-card" key={book.id}><button className="cover-button" onClick={() => openBook(book.id)}><Cover book={book} /></button><div className="book-card-info">{book.badge && <span className="tag">{book.badge}</span>}<p>{book.author}</p><h3>{book.title}</h3><div><strong>{money(book.price)}</strong><button onClick={() => openBook(book.id)} aria-label={`Ver ${book.title}`}>Ver libro <span>→</span></button></div></div></article>)}</div>}
+      {!loading && !error && visibleBooks.length === 0 && <p className="status">No encontramos ese título. Prueba con el autor o una palabra distinta.</p>}
+    </section>
+    <section className="trust-strip"><span>✦ Pagos seguros</span><span>✦ Envíos nacionales</span><span>✦ Atención humana por WhatsApp</span></section>
+    <footer>LBM <span>·</span> Libros que vuelven a encontrarte</footer>
+  </main>;
 }
 
 function BookDetail({ book, onBack }: { book: Book; onBack: () => void }) {
-  const whatsappMessage = encodeURIComponent(
-    `Hola, quiero enviar mi comprobante para comprar “${book.title}” por ${money(book.price)}.`
-  );
-
-  return (
-    <main>
-      <SiteHeader onHome={onBack} showBackButton onBack={onBack} />
-
-      <section className="detail-layout">
-        <div className="detail-cover">
-          <Cover book={book} featured />
-        </div>
-
-        <article className="detail-copy">
-          <p className="eyebrow">{book.category}</p>
-          <h1>{book.title}</h1>
-          <h2>{book.author}</h2>
-          <p className="description">{book.description}</p>
-          <dl>
-            <div>
-              <dt>Formato</dt>
-              <dd>{book.format}</dd>
-            </div>
-            <div>
-              <dt>Páginas</dt>
-              <dd>{book.pages}</dd>
-            </div>
-            <div>
-              <dt>ISBN</dt>
-              <dd>{book.isbn}</dd>
-            </div>
-          </dl>
-        </article>
-
-        <aside className="purchase-card">
-          <p className="stock">
-            ● {book.stock > 0 ? `${book.stock} disponibles` : 'Sin existencias'}
-          </p>
-          <strong className="price">{money(book.price)}</strong>
-          <p className="delivery">⌁ {book.delivery}</p>
-          <a
-            className="paypal-button"
-            href={paypalPaymentUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Pagar con <b>PayPal</b>
-          </a>
-          <div className="divider">
-            <span>o</span>
-          </div>
-          <a
-            className="oxxo-button"
-            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Comprar por depósito en OXXO
-          </a>
-          <p className="payment-note">
-            Al realizar su depósito, envíe una foto del comprobante por WhatsApp al{' '}
-            <strong>477 137 6775</strong>. Le confirmaremos los datos de envío personalmente.
-          </p>
-        </aside>
-      </section>
-
-      <section className="purchase-steps">
-        <p className="eyebrow">Comprar es sencillo</p>
-        <div>
-          <span>01</span>
-          <p>Elija su forma de pago.</p>
-          <span>02</span>
-          <p>Comparta sus datos de envío.</p>
-          <span>03</span>
-          <p>Reciba confirmación y seguimiento.</p>
-        </div>
-      </section>
-    </main>
-  );
+  const whatsappMessage = encodeURIComponent(`Hola, quiero comprar “${book.title}” por ${money(book.price)}.`);
+  return <main>
+    <header className="site-header"><button className="brand" onClick={onBack}><span>LBM</span><b>Los libros de la buena memoria</b></button><button className="back-link" onClick={onBack}>← Volver al catálogo</button></header>
+    <section className="detail-layout">
+      <div className="detail-cover"><Cover book={book} large /></div>
+      <article className="detail-copy"><p className="eyebrow">{book.category}</p><h1>{book.title}</h1><h2>{book.author}</h2><p className="description">{book.description}</p><dl><div><dt>Editorial</dt><dd>{book.publisher}</dd></div><div><dt>Páginas</dt><dd>{book.pages > 0 ? `${book.pages} páginas` : 'No disponible'}</dd></div><div><dt>Formato</dt><dd>{book.format}</dd></div><div><dt>ISBN</dt><dd>{book.isbn || 'No disponible'}</dd></div></dl></article>
+      <aside className="purchase-card"><p className="stock">● {book.stock > 0 ? `${book.stock} disponible${book.stock === 1 ? '' : 's'}` : 'Consulta existencias'}</p><strong className="price">{money(book.price)}</strong><p className="delivery">⌁ {book.delivery}</p><a className="paypal-button" href={paypalPaymentUrl} target="_blank" rel="noreferrer">Pagar con <b>PayPal</b></a><div className="divider"><span>o</span></div><a className="oxxo-button" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`} target="_blank" rel="noreferrer">Comprar por WhatsApp</a><p className="payment-note">Escríbenos y te acompañamos con el pago y los datos de envío.</p></aside>
+    </section>
+    <section className="purchase-steps"><p className="eyebrow">Comprar es sencillo</p><div><p><b>01</b> Elige tu forma de pago.</p><p><b>02</b> Comparte tus datos de envío.</p><p><b>03</b> Recibe confirmación y seguimiento.</p></div></section>
+  </main>;
 }
 
 export default App;

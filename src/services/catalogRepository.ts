@@ -26,13 +26,23 @@ type FirestoreValue = Record<string, FirestoreField>;
 function mapFirestoreBook(doc: { name: string; fields: FirestoreValue }): Book {
   const fields = doc.fields;
   const getString = (key: string) => fields[key]?.stringValue ?? '';
-  const getNumber = (key: string) =>
-    Number(fields[key]?.integerValue ?? fields[key]?.doubleValue ?? 0);
+  const getNumber = (key: string) => {
+    const field = fields[key];
+    if (!field) return 0;
+
+    // Older catalog records were saved as stringValue (e.g. "$ 1,299" and
+    // "304 páginas"). Keep them readable while new records use true numbers.
+    const raw = field.integerValue ?? field.doubleValue ?? field.stringValue ?? '';
+    const normalized = String(raw).replace(/[^\d.]/g, '');
+    const value = Number(normalized);
+    return Number.isFinite(value) ? value : 0;
+  };
 
   return {
     id: getString('id') || doc.name.split('/').at(-1) || crypto.randomUUID(),
     title: getString('title') || getString('titulo'),
     author: getString('author') || getString('autor') || 'Autor no disponible',
+    publisher: getString('editorial') || getString('publisher') || 'No disponible',
     price: getNumber('price') || getNumber('precio'),
     description: getString('description') || getString('descripcion') || 'Descripción no disponible.',
     category: getString('category') || 'Catálogo',
@@ -40,7 +50,18 @@ function mapFirestoreBook(doc: { name: string; fields: FirestoreValue }): Book {
     pages: getNumber('pages') || getNumber('num_paginas'),
     isbn: getString('isbn'),
     stock: getNumber('stock') || 1,
-    delivery: getString('delivery') || getString('tiempo_entrega') || 'Consulta disponibilidad',
+    delivery: (() => {
+      const raw = getString('delivery') || getString('tiempo_entrega') || '15 a 20 días háb.';
+      // Transform "Envío rápido" to calculate arrival day from today (+7 days)
+      if (raw.includes('rápido') || raw.includes('rápido') || raw.includes('Rápido')) {
+        const hoy = new Date();
+        const fechaLlegada = new Date(hoy);
+        fechaLlegada.setDate(fechaLlegada.getDate() + 7);
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        return `Envío rápido (llega el ${fechaLlegada.getDate()} de ${meses[fechaLlegada.getMonth()]})`;
+      }
+      return raw;
+    })(),
     coverTone: getString('coverTone') || 'midnight',
     imageUrl: getString('imageUrl'),
     badge: getString('badge') || undefined,
