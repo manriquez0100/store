@@ -50,10 +50,6 @@ function SiteHeader({ onHome, showBackButton = false, onBack }: SiteHeaderProps)
           aria-label="Los libros de la buena memoria - Ir al inicio"
         >
           <span className="brand-badge" aria-hidden="true">LBM</span>
-          <span className="brand-text">
-            <strong>Los libros de la buena memoria</strong>
-            <small>Búsqueda y envío a domicilio</small>
-          </span>
         </button>
 
         <button
@@ -85,12 +81,7 @@ function SiteHeader({ onHome, showBackButton = false, onBack }: SiteHeaderProps)
             </button>
           ) : (
             <>
-              <a href="#catalogo" className="nav-link" onClick={handleNavClick}>
-                Catálogo
-              </a>
-              <a href="#book-search" className="nav-link" onClick={handleNavClick}>
-                Buscar título
-              </a>
+
             </>
           )}
           <a
@@ -125,18 +116,6 @@ function Cover({ book, featured = false }: { book: Book; featured?: boolean }) {
           : {}
       }
     >
-      {hasImage ? (
-        <span className="cover-mark">LBM</span>
-      ) : featured ? (
-        <>
-          <span className="cover-author">{book.author}</span>
-          <strong>{book.title}</strong>
-          <span className="cover-line" />
-          <small>buena memoria</small>
-        </>
-      ) : (
-        <span className="cover-mark">LBM</span>
-      )}
     </div>
   );
 }
@@ -220,7 +199,7 @@ function App() {
         <div className="hero-content">
           <p className="hero-eyebrow">Librería independiente · México</p>
           <h1 className="hero-title">
-            Encontramos tu libro y lo llevamos a tu domicilio.
+            Buscamos el libro que no has encontrado y lo entregamos en tu domicilio.
           </h1>
           <p className="hero-subtitle">
             Ayudamos a encontrar libros difíciles de conseguir, descatalogados y títulos bajo pedido.
@@ -244,7 +223,7 @@ function App() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="¿Qué libro estás buscando?"
             />
-            <label className="search-input-label" for="book-search">¿Qué libro estás buscando?</label>
+
             <span className="search-icon">🔍</span>
             <span className="search-focus-indicator"></span>
             <span className="search-clear" aria-label="Limpiar búsqueda" onClick={(e) => {
