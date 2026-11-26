@@ -100,7 +100,7 @@ function App() {
       <nav><a href="#catalogo">Catálogo</a><a className="header-cta" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">Te ayudamos a buscar</a></nav>
     </header>
     <section className="hero">
-      <div className="hero-copy"><p className="eyebrow">Librería independiente · México</p><h1>Encontramos el libro que no <em>has encontrado</em><br />y lo llevamos a la puerta de tu casa.</h1><p>Encontramos ediciones especiales, títulos difíciles y ese libro que ya no veías en ninguna parte.</p><a className="primary-link" href="#catalogo">Explorar el catálogo <span>↓</span></a></div>
+      <div className="hero-copy"><p className="eyebrow">Librería independiente · México</p><h1>Los libros de<br /><em>la buena memoria.</em></h1><p>Buscamos el libro que no has encontrado y lo llevamos a la puerta de tu casa.</p><a className="primary-link" href="#catalogo">Explorar el catálogo <span>↓</span></a></div>
       {featuredBook && <button className="hero-book" onClick={() => openBook(featuredBook.id)}><Cover book={featuredBook} large /><span>Descubre la selección de hoy <b>→</b></span></button>}
     </section>
     <section className="catalog" id="catalogo">
