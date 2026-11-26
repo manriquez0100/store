@@ -127,7 +127,7 @@ function BookCard({ book }: { book: Book }) {
       tabIndex={0}
       role="button"
       onClick={() => {
-        window.location.hash = `/libro/${book.id}`;
+        window.location.hash = `#/libro/${book.id}`;
       }}
     >
       <button
@@ -165,7 +165,7 @@ function App() {
     const onHashChange = () => setSelectedId(location.hash.replace('#/libro/', '') || null);
     addEventListener('hashchange', onHashChange);
     return () => removeEventListener('hashchange', onHashChange);
-  }, []);
+  }, [location.hash]);
 
   const selectedBook = books.find((book) => book.id === selectedId);
   const visibleBooks = useMemo(() => {
