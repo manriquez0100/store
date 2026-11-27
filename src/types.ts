@@ -15,4 +15,12 @@ export type Book = {
   coverTone: string;
   imageUrl?: string;
   badge?: string;
+  source?: string;
+  originCountry?: string;
+  sellerName?: string;
+  sellerLocation?: string;
+  sellerReputation?: string;
+  sellerRating?: number;
+  shippingNotes?: string;
+  priceIncludesShipping?: boolean;
 };

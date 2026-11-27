@@ -67,6 +67,15 @@ function mapFirestoreBook(doc: { name: string; fields: FirestoreValue }): Book {
     coverTone: getString('coverTone') || 'midnight',
     imageUrl: getString('imageUrl') || getString('image_url') || getString('portada'),
     badge: getString('badge') || undefined,
+    source: getString('source'),
+    originCountry: getString('originCountry'),
+    sellerName: getString('sellerName'),
+    sellerLocation: getString('sellerLocation'),
+    sellerReputation: getString('sellerReputation'),
+    sellerRating: fields.sellerRating?.integerValue !== undefined || fields.sellerRating?.doubleValue !== undefined
+      ? getNumber('sellerRating') : undefined,
+    shippingNotes: getString('shippingNotes'),
+    priceIncludesShipping: fields.priceIncludesShipping?.booleanValue,
   };
 }
 

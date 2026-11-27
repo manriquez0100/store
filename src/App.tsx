@@ -25,9 +25,12 @@ function money(amount: number) {
 function Cover({ book, large = false }: { book: Book; large?: boolean }) {
   const hasImage = Boolean(book.imageUrl?.trim());
   return (
-    <div className={`book-cover ${book.coverTone} ${large ? 'book-cover-large' : ''}`} style={hasImage ? { backgroundImage: `url('${book.imageUrl}')` } : undefined} aria-label={`Portada de ${book.title}`}>
+    <div className="branded-cover">
+      <p className="cover-brand">Los libros de la buena memoria</p>
+      <div className={`book-cover ${book.coverTone} ${large ? 'book-cover-large' : ''}`} style={hasImage ? { backgroundImage: `url('${book.imageUrl}')` } : undefined} aria-label={`Portada de ${book.title}`}>
       {!hasImage && <><span className="cover-stamp">LBM</span><strong>{book.title}</strong><small>{book.author}</small></>}
       {hasImage && <span className="cover-stamp image-stamp">LBM</span>}
+      </div>
     </div>
   );
 }
@@ -157,13 +160,40 @@ function App() {
   </main>;
 }
 
+function SellerReputation({ book }: { book: Book }) {
+  const legacy = book.sellerReputation?.match(/([0-5](?:[.,]\d+)?)\s*(?:-star|stars?|estrellas?)/i);
+  const rating = book.sellerRating ?? (legacy ? Number(legacy[1].replace(',', '.')) : undefined);
+  if (rating === undefined || !Number.isFinite(rating) || rating < 0 || rating > 5) {
+    return <span>{book.sellerReputation || 'No disponible'}</span>;
+  }
+  return <span className="seller-reputation" aria-label={`Reputación del vendedor: ${rating} de 5 estrellas`}>
+    <span className="seller-stars" aria-hidden="true">
+      <span>★★★★★</span>
+      <span className="seller-stars-filled" style={{ width: `${rating / 5 * 100}%` }}>★★★★★</span>
+    </span>
+    <span>{rating}/5</span>
+  </span>;
+}
+
 function BookDetail({ book, onBack }: { book: Book; onBack: () => void }) {
   const whatsappMessage = encodeURIComponent(`Hola, quiero comprar “${book.title}” por ${money(book.price)}.`);
   return <main>
     <header className="site-header"><button className="brand" onClick={onBack}><span>LBM</span><b>Los libros de la buena memoria</b></button><button className="back-link" onClick={onBack}>← Volver al catálogo</button></header>
     <section className="detail-layout">
       <div className="detail-cover"><Cover book={book} large /></div>
-      <article className="detail-copy"><p className="eyebrow">{book.category}</p><h1>{book.title}</h1><h2>{book.author}</h2><p className="description">{book.description}</p><dl><div><dt>Editorial</dt><dd>{book.publisher}</dd></div><div><dt>Páginas</dt><dd>{book.pages > 0 ? `${book.pages} páginas` : 'No disponible'}</dd></div><div><dt>Formato</dt><dd>{book.format}</dd></div><div><dt>ISBN</dt><dd>{book.isbn || 'No disponible'}</dd></div></dl></article>
+      <article className="detail-copy">
+        <p className="eyebrow">{book.category}</p>
+        <h1>{book.title}</h1>
+        <h2>{book.author}</h2>
+        {book.source === 'abebooks' && <AbeBooksOffer book={book} />}
+        <p className="description">{book.description}</p>
+        <dl>
+          <div><dt>Editorial</dt><dd>{book.publisher}</dd></div>
+          <div><dt>Páginas</dt><dd>{book.pages > 0 ? `${book.pages} páginas` : 'No disponible'}</dd></div>
+          <div><dt>Formato</dt><dd>{book.format}</dd></div>
+          <div><dt>ISBN</dt><dd>{book.isbn || 'No disponible'}</dd></div>
+        </dl>
+      </article>
       <aside className="purchase-card"><p className="stock">● {book.stock > 0 ? `${book.stock} disponible${book.stock === 1 ? '' : 's'}` : 'Consulta existencias'}</p><strong className="price">{money(book.price)}</strong><p className="delivery">⌁ {book.delivery}</p><a className="paypal-button" href={paypalPaymentUrl} target="_blank" rel="noreferrer">Pagar con <b>PayPal</b></a><div className="divider"><span>o</span></div><a className="oxxo-button" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`} target="_blank" rel="noreferrer">Comprar por WhatsApp</a><p className="payment-note">Escríbenos y te acompañamos con el pago y los datos de envío.</p></aside>
     </section>
     <section className="purchase-steps"><p className="eyebrow">Comprar es sencillo</p><div><p><b>01</b> Elige tu forma de pago.</p><p><b>02</b> Comparte tus datos de envío.</p><p><b>03</b> Recibe confirmación y seguimiento.</p></div></section>
@@ -171,3 +201,24 @@ function BookDetail({ book, onBack }: { book: Book; onBack: () => void }) {
 }
 
 export default App;
+
+function AbeBooksOffer({ book }: { book: Book }) {
+  const country = book.originCountry === 'Spain' ? 'España' : book.originCountry;
+  return <section className="abebooks-offer" aria-label="Oferta de AbeBooks">
+    <h3>Procedencia y vendedor · AbeBooks</h3>
+    <dl className="abebooks-offer-data">
+      <div><dt>País de origen</dt><dd>{country || 'Por confirmar'}</dd></div>
+      <div><dt>Librería vendedora</dt><dd>{book.sellerName || 'Por confirmar'}</dd></div>
+      <div><dt>Reputación del vendedor</dt><dd><SellerReputation book={book} /></dd></div>
+    </dl>
+    <p className="international-price-note">El precio puede ser más alto debido al país de origen del libro y los costos de envío internacional a México.</p>
+    {book.priceIncludesShipping === true && <p className="offer-shipping-status">El precio incluye envío a México.</p>}
+    {book.priceIncludesShipping === false && <p className="offer-shipping-status">Envío a México pendiente de cotizar.</p>}
+    <details>
+      <summary>Ubicación y detalles del envío</summary>
+      <p>{book.sellerLocation || 'Ubicación por confirmar'}</p>
+      <p>{book.delivery}</p>
+      <p>{book.shippingNotes || 'Pendiente de confirmar con el vendedor.'}</p>
+    </details>
+  </section>;
+}
