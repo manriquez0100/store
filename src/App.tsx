@@ -6,6 +6,7 @@ import type { Book } from './types';
 
 const WHATSAPP_NUMBER = '524771376775';
 const BOOKS_PER_PAGE = 20;
+const PAGE_BUTTONS = 10;
 const paypalPaymentUrl = import.meta.env.VITE_PAYPAL_PAYMENT_URL ?? 'https://www.paypal.com/';
 
 function shuffleBooks(books: Book[]) {
@@ -43,14 +44,19 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
 }) {
   if (totalPages <= 1) return null;
 
+  const firstPage = Math.floor((currentPage - 1) / PAGE_BUTTONS) * PAGE_BUTTONS + 1;
+  const lastPage = Math.min(firstPage + PAGE_BUTTONS - 1, totalPages);
+
   return <nav className="pagination" aria-label="Paginación del catálogo">
     <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>← Anterior</button>
     <div className="pagination-pages">
-      {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+      {firstPage > 1 && <span className="pagination-ellipsis" aria-label="Más páginas anteriores">…</span>}
+      {Array.from({ length: lastPage - firstPage + 1 }, (_, index) => firstPage + index).map((page) => (
         <button type="button" key={page} className={page === currentPage ? 'is-current' : ''} onClick={() => onPageChange(page)} aria-current={page === currentPage ? 'page' : undefined} aria-label={`Página ${page}`}>
           {page}
         </button>
       ))}
+      {lastPage < totalPages && <span className="pagination-ellipsis" aria-label="Más páginas siguientes">…</span>}
     </div>
     <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}>Siguiente →</button>
   </nav>;
