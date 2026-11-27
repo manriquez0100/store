@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getCatalog } from './services/catalogRepository';
+import { getCatalog, getCatalogCount } from './services/catalogRepository';
+import { CatalogReach } from './CatalogReach';
 import { matchesBook, normalizeSearch } from './services/catalogSearch';
 import type { Book } from './types';
 
@@ -57,6 +58,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
 
 function App() {
   const [books, setBooks] = useState<Book[]>([]);
+  const [catalogTotal, setCatalogTotal] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(() => location.hash.replace('#/libro/', '') || null);
   const [selectionVersion, setSelectionVersion] = useState(0);
@@ -68,7 +70,9 @@ function App() {
   async function refreshCatalog() {
     setRefreshing(true);
     try {
-      setBooks(await getCatalog());
+      const updatedBooks = await getCatalog();
+      setBooks(updatedBooks);
+      setCatalogTotal(await getCatalogCount().catch(() => updatedBooks.length));
       setError('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo actualizar el catálogo.');
@@ -78,10 +82,14 @@ function App() {
   }
 
   useEffect(() => {
-    getCatalog().then(setBooks).catch((cause: Error) => setError(cause.message)).finally(() => setLoading(false));
+    getCatalog().then(items => { setBooks(items); setCatalogTotal(current => current ?? items.length); }).catch((cause: Error) => setError(cause.message)).finally(() => setLoading(false));
+    const updateCount = () => { getCatalogCount().then(setCatalogTotal).catch(() => {}); };
+    updateCount();
+    const countTimer = window.setInterval(updateCount, 60000);
+    addEventListener('focus', updateCount);
     const onHashChange = () => setSelectedId(location.hash.replace('#/libro/', '') || null);
     addEventListener('hashchange', onHashChange);
-    return () => removeEventListener('hashchange', onHashChange);
+    return () => { removeEventListener('hashchange', onHashChange); removeEventListener('focus', updateCount); clearInterval(countTimer); };
   }, []);
 
   const selectedBook = books.find((book) => book.id === selectedId);
@@ -126,7 +134,7 @@ function App() {
       <nav><a href="#catalogo">Catálogo</a><a className="header-cta" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer">Te ayudamos a buscar</a></nav>
     </header>
     <section className="hero">
-      <div className="hero-copy"><p className="eyebrow">Librería independiente · México</p><h1>Los libros de<br /><em>la buena memoria.</em></h1><p>Buscamos el libro que no has encontrado y lo llevamos a la puerta de tu casa.</p><a className="primary-link" href="#catalogo">Explorar el catálogo <span>↓</span></a></div>
+      <div className="hero-copy"><p className="eyebrow">Librería independiente · México</p><h1>Los libros de<br /><em>la buena memoria.</em></h1><p>Buscamos el libro que no has encontrado y lo llevamos a la puerta de tu casa.</p><CatalogReach total={catalogTotal} /><a className="primary-link" href="#catalogo">Explorar el catálogo <span>↓</span></a></div>
       {featuredBook && <button className="hero-book" onClick={() => openBook(featuredBook.id)}><Cover book={featuredBook} large /><span>Descubre la selección de hoy <b>→</b></span></button>}
     </section>
     <section className="catalog" id="catalogo">
@@ -204,7 +212,7 @@ export default App;
 
 function AbeBooksOffer({ book }: { book: Book }) {
   const country = book.originCountry === 'Spain' ? 'España' : book.originCountry;
-  return <section className="abebooks-offer" aria-label="Oferta de AbeBooks">
+  return <section className="abebooks-offer" aria-label="Procedencia y vendedor">
     <h3>Procedencia y vendedor</h3>
     <dl className="abebooks-offer-data">
       <div><dt>País de origen</dt><dd>{country || 'Por confirmar'}</dd></div>

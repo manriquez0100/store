@@ -185,3 +185,21 @@ export async function getCatalog(): Promise<Book[]> {
   // while production reads the shared Firestore collection.
   return fetchFirebaseCatalog();
 }
+
+/** Cuenta todos los documentos sin depender del filtro ni de la página visible. */
+export async function getCatalogCount(): Promise<number> {
+  if (source === 'mock') return mockBooks.length;
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+  const collection = import.meta.env.VITE_FIRESTORE_COLLECTION ?? 'books';
+  if (!projectId) throw new Error('Falta configurar Firebase.');
+  const response = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runAggregationQuery`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(15000),
+    body: JSON.stringify({ structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: collection }] }, aggregations: [{ alias: 'total', count: {} }] } }),
+  });
+  if (!response.ok) throw new Error(`No se pudo contar el catálogo (${response.status}).`);
+  const rows = await response.json();
+  const raw = rows.find((row: { result?: { aggregateFields?: { total?: { integerValue?: string } } } }) => row.result?.aggregateFields?.total)?.result?.aggregateFields?.total?.integerValue;
+  const count = Number(raw);
+  if (raw === undefined || !Number.isSafeInteger(count) || count < 0) throw new Error('Firebase no devolvió un total válido.');
+  return count;
+}
