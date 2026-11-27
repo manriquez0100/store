@@ -14,6 +14,7 @@ type FirestoreField = {
   integerValue?: string;
   doubleValue?: number;
   booleanValue?: boolean;
+  arrayValue?: { values?: FirestoreField[] };
 };
 
 type FirestoreValue = Record<string, FirestoreField>;
@@ -39,7 +40,7 @@ function mapFirestoreBook(doc: { name: string; fields: FirestoreValue }): Book {
   };
 
   return {
-    id: getString('id') || doc.name.split('/').at(-1) || crypto.randomUUID(),
+    id: doc.name.split('/').at(-1) || getString('id'),
     title: getString('title') || getString('titulo'),
     author: getString('author') || getString('autor') || 'Autor no disponible',
     publisher: getString('editorial') || getString('publisher') || 'No disponible',
@@ -49,6 +50,7 @@ function mapFirestoreBook(doc: { name: string; fields: FirestoreValue }): Book {
     format: getString('format') || 'No disponible',
     pages: getNumber('pages') || getNumber('num_paginas'),
     isbn: getString('isbn'),
+    searchTerms: fields.searchTerms?.arrayValue?.values?.map(value => value.stringValue ?? '') ?? [getString('textFromQuery')],
     stock: getNumber('stock') || 1,
     delivery: (() => {
       const raw = getString('delivery') || getString('tiempo_entrega') || '15 a 20 días háb.';
@@ -63,7 +65,7 @@ function mapFirestoreBook(doc: { name: string; fields: FirestoreValue }): Book {
       return raw;
     })(),
     coverTone: getString('coverTone') || 'midnight',
-    imageUrl: getString('imageUrl'),
+    imageUrl: getString('imageUrl') || getString('image_url') || getString('portada'),
     badge: getString('badge') || undefined,
   };
 }
@@ -89,21 +91,32 @@ async function fetchFirebaseCatalog(): Promise<Book[]> {
   }
 
   const endpoint = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}`;
-  const response = await fetch(endpoint);
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `No fue posible consultar el catálogo de Firebase (${response.status}). ` +
-        `Verifica que la base de datos existe y que las credenciales son correctas. Detalle: ${text}`,
-    );
-  }
-
-  const data = (await response.json()) as {
-    documents?: Array<{ name: string; fields: FirestoreValue }>;
-  };
-
-  return (data.documents ?? []).map(mapFirestoreBook);
+  const books = new Map<string, Book>();
+  const seenTokens = new Set<string>();
+  let pageToken = '';
+  do {
+    const params = new URLSearchParams({ pageSize: '300' });
+    if (pageToken) params.set('pageToken', pageToken);
+    const response = await fetch(`${endpoint}?${params}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) {
+      throw new Error(`No fue posible consultar el catálogo de Firebase (${response.status}).`);
+    }
+    const data = (await response.json()) as {
+      documents?: Array<{ name: string; fields: FirestoreValue }>;
+      nextPageToken?: string;
+    };
+    for (const doc of data.documents ?? []) {
+      const book = mapFirestoreBook(doc);
+      books.set(book.id, book);
+    }
+    pageToken = data.nextPageToken ?? '';
+    if (pageToken && seenTokens.has(pageToken)) throw new Error('Firebase repitió una página del catálogo.');
+    seenTokens.add(pageToken);
+  } while (pageToken);
+  return [...books.values()];
 }
 
 /**
@@ -161,6 +174,5 @@ export async function getCatalog(): Promise<Book[]> {
   if (source === 'mock') return mockBooks;
   // Fallback to mock while the Firebase project is being configured,
   // while production reads the shared Firestore collection.
-  if (!import.meta.env.VITE_FIREBASE_PROJECT_ID) return mockBooks;
   return fetchFirebaseCatalog();
 }

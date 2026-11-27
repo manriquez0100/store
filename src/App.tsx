@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getCatalog } from './services/catalogRepository';
+import { matchesBook, normalizeSearch } from './services/catalogSearch';
 import type { Book } from './types';
 
 const WHATSAPP_NUMBER = '524771376775';
@@ -59,6 +60,19 @@ function App() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function refreshCatalog() {
+    setRefreshing(true);
+    try {
+      setBooks(await getCatalog());
+      setError('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo actualizar el catálogo.');
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   useEffect(() => {
     getCatalog().then(setBooks).catch((cause: Error) => setError(cause.message)).finally(() => setLoading(false));
@@ -71,7 +85,16 @@ function App() {
   const homeSelection = useMemo(() => shuffleBooks(books), [books, selectionVersion]);
   const visibleBooks = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase('es-MX');
-    return normalized ? books.filter((book) => `${book.title} ${book.author} ${book.category}`.toLocaleLowerCase('es-MX').includes(normalized)) : homeSelection;
+    if (!normalized) return homeSelection;
+    const titleQuery = normalizeSearch(query);
+    return books.filter((book) => matchesBook(book, query)).sort((a, b) => {
+      const titleScore = (title: string) => {
+        const value = normalizeSearch(title);
+        if (value === titleQuery) return 2;
+        return value.includes(titleQuery) ? 1 : 0;
+      };
+      return titleScore(b.title) - titleScore(a.title);
+    });
   }, [books, homeSelection, query]);
   const totalPages = Math.ceil(visibleBooks.length / BOOKS_PER_PAGE);
   const currentPage = Math.min(page, Math.max(totalPages, 1));
@@ -118,6 +141,9 @@ function App() {
           <div className="catalog-top"><div><p className="eyebrow">La estantería</p><h2>{query ? 'Resultados para tu búsqueda' : 'Encuentra tu próximo libro'}</h2></div><label className="search" htmlFor="book-search"><span>⌕</span><input id="book-search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Título, autor o tema" /></label></div>
           <div className="catalog-meta"><span>{visibleBooks.length} {visibleBooks.length === 1 ? 'título' : 'títulos'} disponibles</span>{!query && <button className="refresh-selection" onClick={() => { setSelectionVersion((version) => version + 1); setPage(1); }}>↻ Ver otra selección</button>}<span>Envíos a todo México</span></div>
           {loading && <p className="status">Ordenando los libros para ti…</p>}
+          <button className="refresh-selection" disabled={loading || refreshing} onClick={refreshCatalog}>
+            {refreshing ? 'Actualizando catálogo…' : 'Actualizar catálogo'}
+          </button>
           {error && <p className="status error">{error}</p>}
           {!loading && !error && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />}
           {!loading && !error && <div className="book-grid">{pageBooks.map((book) => <article className="book-card" key={book.id}><button className="cover-button" onClick={() => openBook(book.id)}><Cover book={book} /></button><div className="book-card-info">{book.badge && <span className="tag">{book.badge}</span>}<p>{book.author}</p><h3>{book.title}</h3><div><strong>{money(book.price)}</strong><button onClick={() => openBook(book.id)} aria-label={`Ver ${book.title}`}>Ver libro <span>→</span></button></div></div></article>)}</div>}

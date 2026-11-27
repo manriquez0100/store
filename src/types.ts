@@ -9,6 +9,7 @@ export type Book = {
   format: string;
   pages: number;
   isbn: string;
+  searchTerms?: string[];
   stock: number;
   delivery: string;
   coverTone: string;
