@@ -205,7 +205,7 @@ export default App;
 function AbeBooksOffer({ book }: { book: Book }) {
   const country = book.originCountry === 'Spain' ? 'España' : book.originCountry;
   return <section className="abebooks-offer" aria-label="Oferta de AbeBooks">
-    <h3>Procedencia y vendedor · AbeBooks</h3>
+    <h3>Procedencia y vendedor</h3>
     <dl className="abebooks-offer-data">
       <div><dt>País de origen</dt><dd>{country || 'Por confirmar'}</dd></div>
       <div><dt>Librería vendedora</dt><dd>{book.sellerName || 'Por confirmar'}</dd></div>
