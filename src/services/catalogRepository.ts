@@ -66,6 +66,10 @@ function mapFirestoreBook(doc: { name: string; fields: FirestoreValue }): Book {
     })(),
     coverTone: getString('coverTone') || 'midnight',
     imageUrl: getString('imageUrl') || getString('image_url') || getString('portada'),
+    imageUrls: [...new Set([
+      getString('imageUrl') || getString('image_url') || getString('portada'),
+      ...(fields.imageUrls?.arrayValue?.values ?? fields.image_urls?.arrayValue?.values ?? []).map(value => value.stringValue ?? ''),
+    ].filter(value => /^https?:\/\//i.test(value)))],
     badge: getString('badge') || undefined,
     source: getString('source'),
     originCountry: getString('originCountry'),

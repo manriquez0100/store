@@ -14,6 +14,7 @@ export type Book = {
   delivery: string;
   coverTone: string;
   imageUrl?: string;
+  imageUrls?: string[];
   badge?: string;
   source?: string;
   originCountry?: string;

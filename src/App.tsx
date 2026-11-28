@@ -24,17 +24,36 @@ function money(amount: number) {
     : 'Consultar precio';
 }
 
-function Cover({ book, large = false }: { book: Book; large?: boolean }) {
-  const hasImage = Boolean(book.imageUrl?.trim());
+function Cover({ book, large = false, imageUrl = book.imageUrl, imageAlt }: { book: Book; large?: boolean; imageUrl?: string; imageAlt?: string }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [imageUrl]);
+  const hasImage = Boolean(imageUrl?.trim()) && !failed;
   return (
     <div className="branded-cover">
       <p className="cover-brand">Los libros de la buena memoria</p>
-      <div className={`book-cover ${book.coverTone} ${large ? 'book-cover-large' : ''}`} style={hasImage ? { backgroundImage: `url('${book.imageUrl}')` } : undefined} aria-label={`Portada de ${book.title}`}>
+      <div className={`book-cover ${book.coverTone} ${large ? 'book-cover-large' : ''} ${hasImage ? 'has-photo' : ''}`}>
+      {hasImage && <img className="book-photo" src={imageUrl} alt={imageAlt || `Portada de ${book.title}`} loading={large ? 'eager' : 'lazy'} onError={() => setFailed(true)} />}
       {!hasImage && <><span className="cover-stamp">LBM</span><strong>{book.title}</strong><small>{book.author}</small></>}
       {hasImage && <span className="cover-stamp image-stamp">LBM</span>}
       </div>
     </div>
   );
+}
+
+export function BookGallery({ book, large = false, onOpen }: { book: Book; large?: boolean; onOpen?: () => void }) {
+  const images = [...new Set([book.imageUrl, ...(book.imageUrls || [])].filter((url): url is string => !!url?.trim()))];
+  const [index, setIndex] = useState(0);
+  const current = Math.min(index, Math.max(0, images.length - 1));
+  useEffect(() => setIndex(0), [book.id]);
+  const cover = <Cover book={book} large={large} imageUrl={images[current]} imageAlt={`Foto ${current + 1} de ${images.length} de ${book.title}`} />;
+  return <div className={`book-gallery ${large ? 'book-gallery-large' : ''}`} role="group" aria-roledescription="carrusel" aria-label={`Imágenes de ${book.title}`}>
+    {onOpen ? <button className="cover-button" onClick={onOpen} aria-label={`Ver ${book.title}`}>{cover}</button> : cover}
+    {images.length > 1 && <>
+      <button type="button" className="gallery-arrow gallery-prev" aria-label={`Imagen anterior de ${book.title}`} onClick={() => setIndex((current + images.length - 1) % images.length)}>{'<'}</button>
+      <button type="button" className="gallery-arrow gallery-next" aria-label={`Siguiente imagen de ${book.title}`} onClick={() => setIndex((current + 1) % images.length)}>{'>'}</button>
+      <span className="gallery-count" aria-live="polite" aria-atomic="true">{current + 1} / {images.length}</span>
+    </>}
+  </div>;
 }
 
 function Pagination({ currentPage, totalPages, onPageChange }: {
@@ -44,7 +63,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
 }) {
   if (totalPages <= 1) return null;
 
-  const firstPage = Math.floor((currentPage - 1) / PAGE_BUTTONS) * PAGE_BUTTONS + 1;
+  const firstPage = Math.max(1, Math.min(currentPage, totalPages - PAGE_BUTTONS + 1));
   const lastPage = Math.min(firstPage + PAGE_BUTTONS - 1, totalPages);
 
   return <nav className="pagination" aria-label="Paginación del catálogo">
@@ -163,7 +182,7 @@ function App() {
           </button>
           {error && <p className="status error">{error}</p>}
           {!loading && !error && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />}
-          {!loading && !error && <div className="book-grid">{pageBooks.map((book) => <article className="book-card" key={book.id}><button className="cover-button" onClick={() => openBook(book.id)}><Cover book={book} /></button><div className="book-card-info">{book.badge && <span className="tag">{book.badge}</span>}<p>{book.author}</p><h3>{book.title}</h3><div><strong>{money(book.price)}</strong><button onClick={() => openBook(book.id)} aria-label={`Ver ${book.title}`}>Ver libro <span>→</span></button></div></div></article>)}</div>}
+          {!loading && !error && <div className="book-grid">{pageBooks.map((book) => <article className="book-card" key={book.id}><BookGallery book={book} onOpen={() => openBook(book.id)} /><div className="book-card-info">{book.badge && <span className="tag">{book.badge}</span>}<p>{book.author}</p><h3>{book.title}</h3><div><strong>{money(book.price)}</strong><button onClick={() => openBook(book.id)} aria-label={`Ver ${book.title}`}>Ver libro <span>→</span></button></div></div></article>)}</div>}
           {!loading && !error && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />}
           {!loading && !error && visibleBooks.length === 0 && <p className="status">No encontramos ese título. Prueba con el autor o una palabra distinta.</p>}
         </div>
@@ -194,7 +213,7 @@ function BookDetail({ book, onBack }: { book: Book; onBack: () => void }) {
   return <main>
     <header className="site-header"><button className="brand" onClick={onBack}><span>LBM</span><b>Los libros de la buena memoria</b></button><button className="back-link" onClick={onBack}>← Volver al catálogo</button></header>
     <section className="detail-layout">
-      <div className="detail-cover"><Cover book={book} large /></div>
+      <div className="detail-cover"><BookGallery book={book} large /></div>
       <article className="detail-copy">
         <p className="eyebrow">{book.category}</p>
         <h1>{book.title}</h1>
